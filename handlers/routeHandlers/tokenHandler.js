@@ -144,6 +144,47 @@ handler._token.put = (requestedProperties, callback) => {
 };
 
 // delete request handling
-handler._token.delete = (requestedProperties, callback) => {};
+handler._token.delete = (requestedProperties, callback) => {
+    const id =
+        typeof requestedProperties.body.id === 'string' &&
+        requestedProperties.body.id.trim().length === 20
+            ? requestedProperties.body.id
+            : false;
+    if (id) {
+        data.read('tokens', id, (err, tokenData) => {
+            if (!err && tokenData) {
+                data.delete('tokens', id, (err2) => {
+                    if (!err2) {
+                        callback(200, {
+                            message: 'Token deleted successfully ',
+                        });
+                    } else {
+                        callback(500, {
+                            error: 'There was a problem in server side ',
+                        });
+                    }
+                });
+            } else {
+                callback(500, {
+                    error: 'There was a problem in server side ',
+                });
+            }
+        });
+    }
+};
+
+handler._token.verify = (id, phone, callback) => {
+    data.read('tokens', id, (err, tokenData) => {
+        if (!err && tokenData) {
+            if (parseJSON(tokenData).phone === phone) {
+                callback(true);
+            } else {
+                callback(false);
+            }
+        } else {
+            callback(false);
+        }
+    });
+};
 
 module.exports = handler;

@@ -13,6 +13,7 @@ const handler = {};
 const data = require('../../lib/data');
 const { hash } = require('../../helpers/utilities');
 const { parseJSON } = require('../../helpers/utilities');
+const tokenHandler = require('./tokenHandler');
 
 handler.userHandler = (requestedProperties, callback) => {
     const acceptedMethods = ['get', 'post', 'put', 'delete'];
@@ -99,6 +100,21 @@ handler._users.get = (requestedProperties, callback) => {
             ? requestedProperties.queryStringObject.phone
             : false;
     if (phone) {
+        const token =
+            typeof requestedProperties.headerObject.token === 'string'
+                ? requestedProperties.headerObject.token
+                : false;
+
+        tokenHandler._token.verify(token, phone, (tokenId) => {
+            if (tokenId) {
+                // rest of the code
+            } else {
+                callback(403, {
+                    error: 'Authentication faild!',
+                });
+            }
+        });
+
         // looking up the user
         data.read('users', phone, (err, u) => {
             const user = { ...parseJSON(u) };
