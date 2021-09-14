@@ -108,22 +108,21 @@ handler._users.get = (requestedProperties, callback) => {
         tokenHandler._token.verify(token, phone, (tokenId) => {
             if (tokenId) {
                 // rest of the code
+                // looking up the user
+                data.read('users', phone, (err, u) => {
+                    const user = { ...parseJSON(u) };
+                    if (!err && user) {
+                        delete user.password;
+                        callback(200, user);
+                    } else {
+                        callback(404, {
+                            error: 'Requested user was not found!',
+                        });
+                    }
+                });
             } else {
                 callback(403, {
                     error: 'Authentication faild!',
-                });
-            }
-        });
-
-        // looking up the user
-        data.read('users', phone, (err, u) => {
-            const user = { ...parseJSON(u) };
-            if (!err && user) {
-                delete user.password;
-                callback(200, user);
-            } else {
-                callback(404, {
-                    error: 'Requested user was not found!',
                 });
             }
         });
@@ -158,23 +157,37 @@ handler._users.put = (requestedProperties, callback) => {
             : false;
     if (phone) {
         if (firstName || lastName || password) {
-            // looking up the user
-            data.read('users', phone, (err, uData) => {
-                const userData = { ...parseJSON(uData) };
-                if (!err && uData) {
-                    if (firstName) {
-                        userData.firstName = firstName;
-                    }
-                    if (lastName) {
-                        userData.lastName = lastName;
-                    }
-                    if (password) {
-                        userData.password = hash(password);
-                    }
-                    data.update('users', phone, userData, (err2) => {
-                        if (!err2) {
-                            callback(200, {
-                                message: 'User was updated successfully',
+            const token =
+                typeof requestedProperties.headerObject.token === 'string'
+                    ? requestedProperties.headerObject.token
+                    : false;
+
+            tokenHandler._token.verify(token, phone, (tokenId) => {
+                if (tokenId) {
+                    // rest of the code
+                    // looking up the user
+                    data.read('users', phone, (err, uData) => {
+                        const userData = { ...parseJSON(uData) };
+                        if (!err && uData) {
+                            if (firstName) {
+                                userData.firstName = firstName;
+                            }
+                            if (lastName) {
+                                userData.lastName = lastName;
+                            }
+                            if (password) {
+                                userData.password = hash(password);
+                            }
+                            data.update('users', phone, userData, (err2) => {
+                                if (!err2) {
+                                    callback(200, {
+                                        message: 'User was updated successfully',
+                                    });
+                                } else {
+                                    callback(500, {
+                                        error: 'There was a problem in server side ',
+                                    });
+                                }
                             });
                         } else {
                             callback(500, {
@@ -183,8 +196,8 @@ handler._users.put = (requestedProperties, callback) => {
                         }
                     });
                 } else {
-                    callback(500, {
-                        error: 'There was a problem in server side ',
+                    callback(403, {
+                        error: 'Authentication faild!',
                     });
                 }
             });
@@ -200,12 +213,26 @@ handler._users.delete = (requestedProperties, callback) => {
             ? requestedProperties.body.phone
             : false;
     if (phone) {
-        data.read('users', phone, (err, uData) => {
-            if (!err && uData) {
-                data.delete('users', phone, (err2) => {
-                    if (!err2) {
-                        callback(200, {
-                            message: 'User deleted successfully ',
+        const token =
+            typeof requestedProperties.headerObject.token === 'string'
+                ? requestedProperties.headerObject.token
+                : false;
+
+        tokenHandler._token.verify(token, phone, (tokenId) => {
+            if (tokenId) {
+                // rest of the code
+                data.read('users', phone, (err, uData) => {
+                    if (!err && uData) {
+                        data.delete('users', phone, (err2) => {
+                            if (!err2) {
+                                callback(200, {
+                                    message: 'User deleted successfully ',
+                                });
+                            } else {
+                                callback(500, {
+                                    error: 'There was a problem in server side ',
+                                });
+                            }
                         });
                     } else {
                         callback(500, {
@@ -214,8 +241,8 @@ handler._users.delete = (requestedProperties, callback) => {
                     }
                 });
             } else {
-                callback(500, {
-                    error: 'There was a problem in server side ',
+                callback(403, {
+                    error: 'Authentication faild!',
                 });
             }
         });
